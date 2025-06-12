@@ -24,31 +24,74 @@ class AuthService {
       _authEndpoint,
       _tokenEndpoint,
     );
+
     final authUrl = grant.getAuthorizationUrl(_redirectUri, scopes: _scopes);
-    if (!await launchUrl(authUrl)) {
-      throw Exception('Could not launch \$authUrl');
+
+    if (!await launchUrl(authUrl, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $authUrl');
     }
 
     final server = await HttpServer.bind(
       InternetAddress.loopbackIPv4,
       _redirectUri.port,
     );
-    final request = await server.first;
-    final fullUri = request.uri;
-    request.response
-      ..statusCode = 200
-      ..headers.set('Content-Type', 'text/html')
-      ..write('<h3>You may close this window.</h3>');
-    await request.response.close();
-    await server.close();
 
-    return grant.handleAuthorizationResponse(fullUri.queryParameters);
+    try {
+      await for (final request in server) {
+        final uri = request.uri;
+
+        if (uri.path == '/github/callback') {
+          request.response
+            ..statusCode = 200
+            ..headers.set('Content-Type', 'text/html')
+            ..write('''
+              <html>
+                <body>
+                  <h3>Authentication successful!</h3>
+                  <p>You may close this window.</p>
+                  <script>window.close();</script>
+                </body>
+              </html>
+            ''');
+          await request.response.close();
+
+          await server.close();
+
+          return grant.handleAuthorizationResponse(uri.queryParameters);
+        } else {
+          request.response
+            ..statusCode = 404
+            ..write('Not found');
+          await request.response.close();
+        }
+      }
+    } catch (e) {
+      await server.close();
+      rethrow;
+    }
+
+    throw Exception('Authentication was cancelled or failed');
   }
 
   Future<String> connectGitHub() async {
-    final client = await _authenticate();
-    final resp = await client.get(Uri.parse('https://api.github.com/user'));
-    final data = json.decode(resp.body) as Map<String, dynamic>;
-    return data['login'] as String;
+    try {
+      final client = await _authenticate();
+      final resp = await client.get(Uri.parse('https://api.github.com/user'));
+
+      if (resp.statusCode != 200) {
+        throw Exception('Failed to get user info: ${resp.statusCode}');
+      }
+
+      final data = json.decode(resp.body) as Map<String, dynamic>;
+      final username = data['login'] as String?;
+
+      if (username == null) {
+        throw Exception('Username not found in GitHub response');
+      }
+
+      return username;
+    } catch (e) {
+      throw Exception('GitHub authentication failed: $e');
+    }
   }
 }
