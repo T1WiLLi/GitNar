@@ -9,7 +9,7 @@ class App extends StatelessWidget {
     return MaterialApp(
       title: "GitNar",
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.blueGrey,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       initialRoute: Routes.home,
