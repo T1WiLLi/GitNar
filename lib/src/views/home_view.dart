@@ -11,29 +11,30 @@ class HomeView extends StatefulWidget {
 
 class HomeViewState extends State<HomeView> {
   String? _ghUser;
-  String? _sonarUser;
+  String? _sonarToken;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _load();
   }
 
-  Future<void> _loadData() async {
+  void _load() async {
     final prefs = await SharedPreferences.getInstance();
-    final isAuth = prefs.getBool('isAuthenticated') ?? false;
-    if (!isAuth) {
+    final auth = prefs.getBool('isAuthenticated') ?? false;
+    if (!auth) {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, Routes.auth);
       return;
     }
+    if (!mounted) return;
     setState(() {
       _ghUser = prefs.getString('githubUsername');
-      _sonarUser = prefs.getString('sonarUsername');
+      _sonarToken = prefs.getString('sonarToken');
     });
   }
 
-  Future<void> _disconnect() async {
+  void _disconnect() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     if (!mounted) return;
@@ -49,10 +50,8 @@ class HomeViewState extends State<HomeView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Welcome,', style: Theme.of(context).textTheme.headlineLarge),
-            if (_ghUser != null)
-              Text('GitHub: \$\_ghUser', style: TextStyle(fontSize: 18)),
-            if (_sonarUser != null)
-              Text('Sonar: \$\_sonarUser', style: TextStyle(fontSize: 18)),
+            if (_ghUser != null) Text('GitHub: \$_ghUser'),
+            if (_sonarToken != null) Text('Sonar Token: \$_sonarToken'),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _disconnect,
