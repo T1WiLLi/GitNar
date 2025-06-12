@@ -1,32 +1,36 @@
 // lib/src/screens/auth_view.dart
 import 'package:flutter/material.dart';
+import 'package:gitnar/src/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../routes.dart';
 
 class AuthView extends StatefulWidget {
-  const AuthView({Key? key}) : super(key: key);
+  const AuthView({super.key});
 
   @override
   AuthViewState createState() => AuthViewState();
 }
 
 class AuthViewState extends State<AuthView> {
+  final _auth = AuthService();
   String _sonarProvider = 'SonarQube';
   bool _githubConnected = false;
   bool _sonarConnected = false;
 
   Future<void> _updateGithub() async {
-    // TODO: Wire up GitHub OAuth
+    final username = await _auth.connectGitHub();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isGithubConnected', true);
+    await prefs.setString('githubUsername', username);
     setState(() => _githubConnected = true);
     _tryFinalizeAuth();
   }
 
   Future<void> _updateSonar() async {
-    // TODO: Wire up Sonar OAuth based on provider
+    final username = await _auth.connectSonar(_sonarProvider);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isSonarConnected', true);
+    await prefs.setString('sonarUsername', username);
     setState(() => _sonarConnected = true);
     _tryFinalizeAuth();
   }
@@ -42,9 +46,12 @@ class AuthViewState extends State<AuthView> {
 
   Future<void> _debugConnect() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isGithubConnected', true);
-    await prefs.setBool('isSonarConnected', true);
-    await prefs.setBool('isAuthenticated', true);
+    prefs
+      ..setBool('isGithubConnected', true)
+      ..setString('githubUsername', 'dev')
+      ..setBool('isSonarConnected', true)
+      ..setString('sonarUsername', 'dev')
+      ..setBool('isAuthenticated', true);
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, Routes.home);
   }
