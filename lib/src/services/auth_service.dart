@@ -41,6 +41,20 @@ class AuthService {
         final uri = request.uri;
 
         if (uri.path == '/github/callback') {
+          // Check for errors first
+          if (uri.queryParameters.containsKey('error')) {
+            final error = uri.queryParameters['error'];
+            final description = uri.queryParameters['error_description'];
+
+            request.response
+              ..statusCode = 400
+              ..headers.set('Content-Type', 'text/html')
+              ..write('<h3>Error: $error</h3><p>$description</p>');
+            await request.response.close();
+            await server.close();
+            throw Exception('OAuth error: $error - $description');
+          }
+
           request.response
             ..statusCode = 200
             ..headers.set('Content-Type', 'text/html')
@@ -54,7 +68,6 @@ class AuthService {
               </html>
             ''');
           await request.response.close();
-
           await server.close();
 
           return grant.handleAuthorizationResponse(uri.queryParameters);
