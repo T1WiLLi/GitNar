@@ -13,7 +13,6 @@ class AuthView extends StatefulWidget {
 
 class AuthViewState extends State<AuthView> {
   final _auth = AuthService();
-  String _sonarProvider = 'SonarQube';
   bool _githubConnected = false;
   bool _sonarConnected = false;
 
@@ -27,7 +26,7 @@ class AuthViewState extends State<AuthView> {
   }
 
   Future<void> _updateSonar() async {
-    final username = await _auth.connectSonar(_sonarProvider);
+    final username = await _auth.connectSonarCloud();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isSonarConnected', true);
     await prefs.setString('sonarUsername', username);
@@ -178,40 +177,6 @@ class AuthViewState extends State<AuthView> {
     );
   }
 
-  Widget _buildSonarProviderSelector() {
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButton<String>(
-        value: _sonarProvider,
-        underline: const SizedBox(),
-        isDense: true,
-        style: const TextStyle(
-          fontSize: 13,
-          color: Colors.black87,
-          fontWeight: FontWeight.w500,
-        ),
-        icon: Icon(
-          Icons.arrow_drop_down,
-          size: 18,
-          color: Colors.grey.shade600,
-        ),
-        items: const [
-          DropdownMenuItem(value: 'SonarQube', child: Text('SonarQube')),
-          DropdownMenuItem(value: 'SonarCloud', child: Text('SonarCloud')),
-        ],
-        onChanged: (v) {
-          if (v != null) setState(() => _sonarProvider = v);
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -260,7 +225,6 @@ class AuthViewState extends State<AuthView> {
                       isConnected: _sonarConnected,
                       onConnect: _updateSonar,
                       description: 'Analyze code quality and security',
-                      trailing: _buildSonarProviderSelector(),
                     ),
                   ],
                 ),
