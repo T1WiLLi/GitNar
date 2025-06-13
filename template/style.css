@@ -1,0 +1,65 @@
+.node-connector {
+    position: relative;
+}
+
+.node-connector::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    width: 20px;
+    height: 2px;
+    background: #6b7280;
+}
+
+.node-connector::after {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    background: #6b7280;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.workflow-canvas {
+    background-image: radial-gradient(circle, #374151 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-transition {
+    transition: transform 0.3s ease-in-out;
+}
+
+.glow-effect {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.toggle-checkbox:checked {
+    right: 0;
+    border-color: #3b82f6;
+}
+
+.toggle-checkbox:checked+.toggle-label {
+    background-color: #3b82f6;
+}
+
+.selected-node {
+    border-color: #3b82f6 !important;
+}
+
+.connection-path:hover {
+    stroke: #ef4444;
+}
