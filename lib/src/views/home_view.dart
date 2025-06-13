@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:gitnar/src/routes.dart';
-import 'package:gitnar/src/services/auth_service.dart';
+import 'package:gitnar/src/views/components/analytics_view.dart';
+import 'package:gitnar/src/views/components/dashboard_view.dart';
+import 'package:gitnar/src/views/components/issues_view.dart';
+import 'package:gitnar/src/views/components/workflows_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeView extends StatefulWidget {
@@ -12,11 +14,9 @@ class HomeView extends StatefulWidget {
 }
 
 class HomeViewState extends State<HomeView> {
+  int _selectedIndex = 0;
   String? _githubUsername;
-  String? _sonarToken;
-  bool _isLoading = true;
-  String? _errorMessage;
-  final _authService = AuthService();
+  String? _githubProfileImageUrl;
 
   @override
   void initState() {
@@ -26,51 +26,26 @@ class HomeViewState extends State<HomeView> {
 
   Future<void> _loadAuthState() async {
     final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString('githubAccessToken');
     final username = prefs.getString('githubUsername');
-    final sonarToken = prefs.getString('sonarToken');
-
-    if (accessToken == null || username == null) {
-      _redirectToAuth();
-      return;
-    }
-
-    try {
-      final isValid = await _authService.validateGitHubToken(accessToken);
-      if (!isValid) {
-        await prefs.remove('githubAccessToken');
-        await prefs.remove('githubUsername');
-        await prefs.remove('sonarToken');
-        _redirectToAuth();
-        return;
-      }
-
-      if (!mounted) return;
+    if (username != null) {
       setState(() {
         _githubUsername = username;
-        _sonarToken = sonarToken;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Failed to validate credentials: $e';
-        _isLoading = false;
+        _githubProfileImageUrl = 'https://github.com/$username.png';
       });
     }
   }
 
-  void _redirectToAuth() {
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, Routes.auth);
+  void _onTabSelected(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   Future<void> _disconnect() async {
-    if (!mounted) return;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1F2937),
+        backgroundColor: const Color(0xFF374151),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text(
           'Disconnect',
@@ -99,11 +74,328 @@ class HomeViewState extends State<HomeView> {
       ),
     );
 
-    if (confirm != true) return;
+    if (confirm == true) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/auth');
+    }
+  }
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    _redirectToAuth();
+  Widget _buildSidebarButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    VoidCallback? onPressed,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: ElevatedButton.icon(
+          // fallback to a no-op so the button is never disabled
+          onPressed: onPressed ?? () {},
+          icon: Icon(icon, size: 16, color: Colors.white),
+          label: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+            minimumSize: const Size(double.infinity, 36),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebar() {
+    return Container(
+      width: 260,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1F2937),
+        border: const Border(
+          right: BorderSide(color: Color(0xFF374151), width: 1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with profile
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // GitNar title and status
+                Row(
+                  children: [
+                    // Profile picture on the left (replaces hub icon)
+                    if (_githubProfileImageUrl != null)
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundImage: NetworkImage(_githubProfileImageUrl!),
+                        backgroundColor: const Color(0xFF374151),
+                      )
+                    else
+                      const Icon(Icons.hub, color: Colors.white, size: 24),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'GitNar',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(Icons.circle, color: Colors.green, size: 12),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'Connected',
+                      style: TextStyle(color: Colors.green, fontSize: 12),
+                    ),
+                  ],
+                ),
+                // Username under GitNar title
+                if (_githubUsername != null) ...[
+                  const SizedBox(),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 32,
+                    ), // Align with GitNar text
+                    child: Text(
+                      '@$_githubUsername',
+                      style: const TextStyle(
+                        color: Color(0xFF9CA3AF),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const Divider(color: Color(0xFF374151), height: 1),
+
+          // Repository Links Section
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.link, color: Color(0xFF9CA3AF), size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Repository Links',
+                      style: TextStyle(
+                        color: Color(0xFF9CA3AF),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildSidebarButton(
+                  icon: Icons.add,
+                  label: 'Add Repository Link',
+                  color: const Color(0xFF10B981), // Green color
+                  onPressed: () {
+                    // Add repository link functionality
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(color: Color(0xFF374151), height: 1),
+
+          // Quick Actions Section
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.flash_on, color: Color(0xFF9CA3AF), size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Quick Actions',
+                      style: TextStyle(
+                        color: Color(0xFF9CA3AF),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildSidebarButton(
+                  icon: Icons.sync,
+                  label: 'Sync All Issues',
+                  color: const Color(0xFF8B5CF6), // Purple
+                ),
+                _buildSidebarButton(
+                  icon: Icons.bar_chart,
+                  label: 'Generate Report',
+                  color: const Color(0xFF3B82F6), // Blue
+                ),
+                _buildSidebarButton(
+                  icon: Icons.auto_fix_high,
+                  label: 'Auto-Link Issues',
+                  color: const Color(0xFF10B981), // Green
+                ),
+                _buildSidebarButton(
+                  icon: Icons.close_fullscreen,
+                  label: 'Bulk Close Issues',
+                  color: const Color(0xFFEF4444), // Red
+                ),
+                _buildSidebarButton(
+                  icon: Icons.download,
+                  label: 'Export Data',
+                  color: const Color(0xFFF59E0B), // Orange
+                ),
+              ],
+            ),
+          ),
+
+          const Spacer(),
+
+          // Disconnect Button
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _disconnect,
+                icon: const FaIcon(FontAwesomeIcons.rightFromBracket, size: 16),
+                label: const Text('Disconnect'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFEF4444),
+                  side: const BorderSide(color: Color(0xFFEF4444)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Container(
+      height: 60,
+      color: const Color(0xFF1F2937),
+      child: Row(
+        children: [
+          Expanded(child: _buildTopTabBar()),
+          // Settings and Help icons
+          IconButton(
+            icon: const Icon(Icons.settings, color: Color(0xFF9CA3AF)),
+            onPressed: () {
+              // Settings functionality
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.help_outline, color: Color(0xFF9CA3AF)),
+            onPressed: () {
+              // Help functionality
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopTabBar() {
+    return Row(
+      children: [
+        _buildTab('Dashboard', 0, Icons.dashboard_outlined),
+        _buildTab('Workflows', 1, Icons.settings_outlined),
+        _buildTab('Issues', 2, Icons.bug_report_outlined),
+        _buildTab('Analytics', 3, Icons.analytics_outlined),
+      ],
+    );
+  }
+
+  Widget _buildTab(String title, int index, IconData icon) {
+    final isSelected = _selectedIndex == index;
+    return Expanded(
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: InkWell(
+          onTap: () => _onTabSelected(index),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: isSelected ? Colors.white : Colors.transparent,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  color: isSelected ? Colors.white : const Color(0xFF9CA3AF),
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : const Color(0xFF9CA3AF),
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _getCurrentView() {
+    switch (_selectedIndex) {
+      case 0:
+        return const DashboardView();
+      case 1:
+        return const WorkflowsView();
+      case 2:
+        return const IssuesView();
+      case 3:
+        return const AnalyticsView();
+      default:
+        return const DashboardView();
+    }
   }
 
   @override
@@ -117,228 +409,30 @@ class HomeViewState extends State<HomeView> {
             colors: [Color(0xFF1F2937), Color(0xFF1E3A8A), Color(0xFF1F2937)],
           ),
         ),
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF2563EB)),
-              )
-            : SafeArea(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const FaIcon(
-                          FontAwesomeIcons.github,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'GitNar',
-                          style: Theme.of(context).textTheme.headlineLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 36,
-                                color: Colors.white,
-                                shadows: const [
-                                  Shadow(blurRadius: 4, color: Colors.black54),
-                                ],
-                              ),
-                        ),
-                      ],
+        child: Row(
+          children: [
+            // Sidebar
+            _buildSidebar(),
+
+            // Main Content Area
+            Expanded(
+              child: Column(
+                children: [
+                  // Top Bar with tabs and icons
+                  _buildTopBar(),
+
+                  // Main Content
+                  Expanded(
+                    child: Container(
+                      color: const Color(0xFF111827),
+                      child: _getCurrentView(),
                     ),
-                    const SizedBox(height: 32),
-
-                    // Error Message
-                    if (_errorMessage != null)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF2F2),
-                          border: Border.all(color: const Color(0xFFFCA5A5)),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(
-                            color: Color(0xFFB91C1C),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-
-                    // Welcome Message
-                    Text(
-                      'Welcome, ${_githubUsername ?? 'User'}',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 28,
-                            color: Colors.white,
-                          ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // GitHub Info
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.symmetric(horizontal: 24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1F2937),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 6,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const FaIcon(
-                            FontAwesomeIcons.github,
-                            color: Color(0xFF60A5FA),
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'GitHub',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _githubUsername ?? 'N/A',
-                                  style: const TextStyle(
-                                    color: Color(0xFF9CA3AF),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const FaIcon(
-                            FontAwesomeIcons.circleCheck,
-                            color: Color(0xFF16A34A),
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // SonarQube Info
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.symmetric(horizontal: 24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1F2937),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 6,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const FaIcon(
-                            FontAwesomeIcons.shieldHalved,
-                            color: Color(0xFFF97316),
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'SonarQube',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _sonarToken != null
-                                      ? '****${_sonarToken!.substring(_sonarToken!.length - 4)}'
-                                      : 'N/A',
-                                  style: const TextStyle(
-                                    color: Color(0xFF9CA3AF),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (_sonarToken != null)
-                            const FaIcon(
-                              FontAwesomeIcons.circleCheck,
-                              color: Color(0xFF16A34A),
-                              size: 20,
-                            ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Disconnect Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: ElevatedButton.icon(
-                          onPressed: _disconnect,
-                          icon: const FaIcon(
-                            FontAwesomeIcons.rightFromBracket,
-                            size: 18,
-                          ),
-                          label: const Text(
-                            'Disconnect',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFEF4444),
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(double.infinity, 48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 2,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
+          ],
+        ),
       ),
     );
   }
