@@ -192,7 +192,11 @@ class AuthViewState extends State<AuthView> {
                   ],
                 ),
                 const SizedBox(height: 32),
-                if (_errorMessage != null) Alert.error(_errorMessage!),
+                if (_errorMessage != null)
+                  Alert.error(
+                    _errorMessage!,
+                    onClose: () => setState(() => _errorMessage = null),
+                  ),
                 GithubConnectionCard(
                   connected: _githubConnected,
                   isConnecting: _isConnectingGithub,
