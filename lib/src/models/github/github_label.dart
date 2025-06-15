@@ -1,14 +1,29 @@
-import 'package:flutter/cupertino.dart';
-
 class GithubLabel {
+  final int id;
   final String name;
-  final String color;
   final String? description;
+  final String color;
+  final String url;
 
-  GithubLabel({required this.name, required this.color, this.description});
+  GithubLabel({
+    required this.id,
+    required this.name,
+    this.description,
+    required this.color,
+    required this.url,
+  });
 
-  Color getColor() {
-    // Assuming color is a hex string like 'ff0000'
-    return Color(int.parse('ff$color', radix: 16));
-  }
+  factory GithubLabel.fromJson(Map<String, dynamic> json) => GithubLabel(
+    id: json['id'],
+    name: json['name'],
+    description: json['description'],
+    color: json['color'],
+    url: json['url'],
+  );
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'description': description,
+    'color': color,
+  };
 }

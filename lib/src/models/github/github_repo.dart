@@ -1,24 +1,31 @@
-import 'package:gitnar/src/models/github/github_issue.dart';
-import 'package:gitnar/src/models/github/github_label.dart';
-import 'package:gitnar/src/models/github/github_project.dart';
-import 'package:gitnar/src/models/github/github_user.dart';
+import 'github_user.dart';
 
 class GithubRepo {
+  final int id;
   final String name;
-  final String description;
+  final String fullName;
+  final GithubUser owner;
   final bool isPrivate;
-  final List<GithubIssue> issues;
-  final List<GithubLabel> labels;
-  final List<GithubUser> collaborators;
-  final List<GithubProject> projects;
+  final String htmlUrl;
+  final String? description;
 
   GithubRepo({
+    required this.id,
     required this.name,
-    required this.description,
+    required this.fullName,
+    required this.owner,
     required this.isPrivate,
-    required this.issues,
-    required this.labels,
-    required this.collaborators,
-    required this.projects,
+    required this.htmlUrl,
+    this.description,
   });
+
+  factory GithubRepo.fromJson(Map<String, dynamic> json) => GithubRepo(
+    id: json['id'],
+    name: json['name'],
+    fullName: json['full_name'],
+    owner: GithubUser.fromJson(json['owner']),
+    isPrivate: json['private'],
+    htmlUrl: json['html_url'],
+    description: json['description'],
+  );
 }
