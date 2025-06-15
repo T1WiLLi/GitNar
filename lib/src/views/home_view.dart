@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:gitnar/src/context/app_context.dart';
 import 'package:gitnar/src/views/components/analytics_view.dart';
 import 'package:gitnar/src/views/components/dashboard_view.dart';
 import 'package:gitnar/src/views/components/issues_view.dart';
 import 'package:gitnar/src/views/components/workflows_view.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -15,25 +15,11 @@ class HomeView extends StatefulWidget {
 
 class HomeViewState extends State<HomeView> {
   int _selectedIndex = 0;
-  String? _githubUsername;
-  String? _githubProfileImageUrl;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadAuthState();
-  }
-
-  Future<void> _loadAuthState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final username = prefs.getString('githubUsername');
-    if (username != null) {
-      setState(() {
-        _githubUsername = username;
-        _githubProfileImageUrl = 'https://github.com/$username.png';
-      });
-    }
-  }
+  String? get _githubUsername => AppContext.instance.currentUser?.login;
+  String? get _githubProfileImageUrl => _githubUsername != null
+      ? 'https://github.com/$_githubUsername.png'
+      : null;
 
   void _onTabSelected(int index) {
     setState(() {
@@ -75,8 +61,7 @@ class HomeViewState extends State<HomeView> {
     );
 
     if (confirm == true) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await AppContext.instance.clear();
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/auth');
     }
@@ -93,7 +78,6 @@ class HomeViewState extends State<HomeView> {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: ElevatedButton.icon(
-          // fallback to a no-op so the button is never disabled
           onPressed: onPressed ?? () {},
           icon: Icon(icon, size: 16, color: Colors.white),
           label: Text(
@@ -136,10 +120,8 @@ class HomeViewState extends State<HomeView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // GitNar title and status
                 Row(
                   children: [
-                    // Profile picture on the left (replaces hub icon)
                     if (_githubProfileImageUrl != null)
                       CircleAvatar(
                         radius: 12,
@@ -166,13 +148,10 @@ class HomeViewState extends State<HomeView> {
                     ),
                   ],
                 ),
-                // Username under GitNar title
                 if (_githubUsername != null) ...[
-                  const SizedBox(),
+                  const SizedBox(height: 4),
                   Padding(
-                    padding: const EdgeInsets.only(
-                      left: 32,
-                    ), // Align with GitNar text
+                    padding: const EdgeInsets.only(left: 32),
                     child: Text(
                       '@$_githubUsername',
                       style: const TextStyle(
@@ -213,7 +192,7 @@ class HomeViewState extends State<HomeView> {
                 _buildSidebarButton(
                   icon: Icons.add,
                   label: 'Add Repository Link',
-                  color: const Color(0xFF10B981), // Green color
+                  color: const Color(0xFF10B981),
                   onPressed: () {
                     // Add repository link functionality
                   },
@@ -248,27 +227,27 @@ class HomeViewState extends State<HomeView> {
                 _buildSidebarButton(
                   icon: Icons.sync,
                   label: 'Sync All Issues',
-                  color: const Color(0xFF8B5CF6), // Purple
+                  color: const Color(0xFF8B5CF6),
                 ),
                 _buildSidebarButton(
                   icon: Icons.bar_chart,
                   label: 'Generate Report',
-                  color: const Color(0xFF3B82F6), // Blue
+                  color: const Color(0xFF3B82F6),
                 ),
                 _buildSidebarButton(
                   icon: Icons.auto_fix_high,
                   label: 'Auto-Link Issues',
-                  color: const Color(0xFF10B981), // Green
+                  color: const Color(0xFF10B981),
                 ),
                 _buildSidebarButton(
                   icon: Icons.close_fullscreen,
                   label: 'Bulk Close Issues',
-                  color: const Color(0xFFEF4444), // Red
+                  color: const Color(0xFFEF4444),
                 ),
                 _buildSidebarButton(
                   icon: Icons.download,
                   label: 'Export Data',
-                  color: const Color(0xFFF59E0B), // Orange
+                  color: const Color(0xFFF59E0B),
                 ),
               ],
             ),
@@ -276,7 +255,6 @@ class HomeViewState extends State<HomeView> {
 
           const Spacer(),
 
-          // Disconnect Button
           Padding(
             padding: const EdgeInsets.all(16),
             child: SizedBox(
@@ -308,18 +286,13 @@ class HomeViewState extends State<HomeView> {
       child: Row(
         children: [
           Expanded(child: _buildTopTabBar()),
-          // Settings and Help icons
           IconButton(
             icon: const Icon(Icons.settings, color: Color(0xFF9CA3AF)),
-            onPressed: () {
-              // Settings functionality
-            },
+            onPressed: () {},
           ),
           IconButton(
             icon: const Icon(Icons.help_outline, color: Color(0xFF9CA3AF)),
-            onPressed: () {
-              // Help functionality
-            },
+            onPressed: () {},
           ),
           const SizedBox(width: 8),
         ],
@@ -411,17 +384,11 @@ class HomeViewState extends State<HomeView> {
         ),
         child: Row(
           children: [
-            // Sidebar
             _buildSidebar(),
-
-            // Main Content Area
             Expanded(
               child: Column(
                 children: [
-                  // Top Bar with tabs and icons
                   _buildTopBar(),
-
-                  // Main Content
                   Expanded(
                     child: Container(
                       color: const Color(0xFF111827),
