@@ -8,7 +8,7 @@ import 'package:gitnar/src/models/github/github_user.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 
 import '../routes.dart';
-import 'components/general/error_message.dart';
+import 'components/general/message_widget.dart';
 import '../views/components/auth_view/github_connection_card.dart';
 import '../views/components/auth_view/sonar_token_card.dart';
 
@@ -196,7 +196,11 @@ class AuthViewState extends State<AuthView> {
                   ],
                 ),
                 const SizedBox(height: 32),
-                if (_errorMessage != null) ErrorMessage(_errorMessage!),
+                if (_errorMessage != null)
+                  MessageWidget.error(
+                    message: _errorMessage!,
+                    showCloseButton: true,
+                  ),
                 GithubConnectionCard(
                   connected: _githubConnected,
                   isConnecting: _isConnectingGithub,
