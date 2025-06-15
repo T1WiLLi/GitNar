@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gitnar/src/context/app_context.dart';
-import 'package:gitnar/src/providers/github_api_provider.dart';
-import 'package:gitnar/src/services/auth_service.dart';
-import 'package:gitnar/src/models/user_security.dart';
 import 'package:gitnar/src/models/github/github_user.dart';
+import 'package:gitnar/src/models/user_security.dart';
+import 'package:gitnar/src/services/auth_service.dart';
+import 'package:gitnar/src/views/components/general/alert_view.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 
 import '../routes.dart';
-import 'components/general/message_widget.dart';
 import '../views/components/auth_view/github_connection_card.dart';
 import '../views/components/auth_view/sonar_token_card.dart';
 
@@ -21,7 +20,6 @@ class AuthView extends StatefulWidget {
 
 class AuthViewState extends State<AuthView> {
   final _auth = AuthService();
-  final _api = GithubApiProvider();
   bool _githubConnected = false;
   bool _isConnectingGithub = false;
   bool _isSavingToken = false;
@@ -56,16 +54,14 @@ class AuthViewState extends State<AuthView> {
     try {
       final result = await _auth.connectGitHub();
       final client = result['client'] as oauth2.Client;
+      final userJson = result['user'] as Map<String, dynamic>;
 
-      // Use provider to get real user
       AppContext.instance.security = UserSecurity(
         githubAccessToken: client.credentials.accessToken,
         sonarToken: AppContext.instance.security?.sonarToken ?? '',
       );
 
-      _api; // make sure it's initialized with new token
-      final user = await _api.getCurrentUser();
-      AppContext.instance.currentUser = user;
+      AppContext.instance.currentUser = GithubUser.fromJson(userJson);
 
       await AppContext.instance.save();
 
@@ -130,7 +126,7 @@ class AuthViewState extends State<AuthView> {
     AppContext.instance.currentUser = GithubUser(
       id: 0,
       login: 'dev',
-      avatarUrl: '',
+      avatarUrl: 'https://github.com/dev.png',
     );
     await AppContext.instance.save();
     _navigateToHome();
@@ -196,11 +192,7 @@ class AuthViewState extends State<AuthView> {
                   ],
                 ),
                 const SizedBox(height: 32),
-                if (_errorMessage != null)
-                  MessageWidget.error(
-                    message: _errorMessage!,
-                    showCloseButton: true,
-                  ),
+                if (_errorMessage != null) Alert.error(_errorMessage!),
                 GithubConnectionCard(
                   connected: _githubConnected,
                   isConnecting: _isConnectingGithub,

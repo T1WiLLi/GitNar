@@ -39,6 +39,7 @@ class AuthService {
       InternetAddress.loopbackIPv4,
       _redirectUri.port,
     );
+
     try {
       await for (final request in server) {
         final uri = request.uri;
@@ -70,8 +71,8 @@ class AuthService {
           if (code == null) throw Exception('Authorization code not found');
 
           final client = await _exchangeCodeForToken(code);
-          final username = await _getUsername(client);
-          return {'client': client, 'username': username};
+          final userJson = await _getUser(client);
+          return {'client': client, 'user': userJson};
         } else {
           request.response
             ..statusCode = 404
@@ -83,6 +84,7 @@ class AuthService {
       await server.close();
       rethrow;
     }
+
     throw Exception('Authentication was cancelled or failed');
   }
 
@@ -128,17 +130,13 @@ class AuthService {
     );
   }
 
-  Future<String> _getUsername(oauth2.Client client) async {
+  /// ✅ Returns full GitHub user JSON
+  Future<Map<String, dynamic>> _getUser(oauth2.Client client) async {
     final resp = await client.get(Uri.parse('https://api.github.com/user'));
     if (resp.statusCode != 200) {
       throw Exception('Failed to get user info: ${resp.statusCode}');
     }
-    final data = json.decode(resp.body) as Map<String, dynamic>;
-    final username = data['login'] as String?;
-    if (username == null) {
-      throw Exception('Username not found in GitHub response');
-    }
-    return username;
+    return json.decode(resp.body) as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> connectGitHub() async {
