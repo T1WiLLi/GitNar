@@ -8,7 +8,7 @@ import 'package:gitnar/src/models/github/github_user.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 
 import '../routes.dart';
-import '../views/components/auth_view/error_message.dart';
+import 'components/general/error_message.dart';
 import '../views/components/auth_view/github_connection_card.dart';
 import '../views/components/auth_view/sonar_token_card.dart';
 
