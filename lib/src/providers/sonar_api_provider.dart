@@ -15,12 +15,19 @@ class SonarApiProvider implements ISonarApiProvider {
 
   @override
   Future<bool> isTokenValid(String token) async {
-    final url = Uri.parse("$_baseUrl/api/authentication/validate");
-    final resp = await http.get(url, headers: _headers);
-    if (resp.statusCode == 200) {
-      final json = jsonDecode(resp.body);
-      return json['valid'] == true;
+    final url = Uri.parse('$_baseUrl/api/authentication/validate');
+    final resp = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    print(resp.body);
+
+    if (resp.statusCode == 200 || resp.statusCode == 204) {
+      return jsonDecode(resp.body)['valid'];
     }
+
+    // Invalid: 401
     return false;
   }
 

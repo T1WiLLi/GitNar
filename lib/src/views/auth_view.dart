@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gitnar/src/context/app_context.dart';
 import 'package:gitnar/src/models/github/github_user.dart';
 import 'package:gitnar/src/models/user_security.dart';
+import 'package:gitnar/src/providers/sonar_api_provider.dart';
 import 'package:gitnar/src/services/auth_service.dart';
 import 'package:gitnar/src/views/components/general/alert_view.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
@@ -20,6 +21,7 @@ class AuthView extends StatefulWidget {
 
 class AuthViewState extends State<AuthView> {
   final _auth = AuthService();
+  final _sonarProvider = SonarApiProvider();
   bool _githubConnected = false;
   bool _isConnectingGithub = false;
   bool _isSavingToken = false;
@@ -93,18 +95,35 @@ class AuthViewState extends State<AuthView> {
       _errorMessage = null;
     });
 
-    AppContext.instance.security = UserSecurity(
-      githubAccessToken: AppContext.instance.security?.githubAccessToken ?? '',
-      sonarToken: token,
-    );
+    try {
+      final isValid = await _sonarProvider.isTokenValid(token);
+      if (!isValid) {
+        setState(() {
+          _errorMessage =
+              'Invalid SonarQube token. Please check and try again.';
+          _isSavingToken = false;
+        });
+        return;
+      }
 
-    await AppContext.instance.save();
+      AppContext.instance.security = UserSecurity(
+        githubAccessToken:
+            AppContext.instance.security?.githubAccessToken ?? '',
+        sonarToken: token,
+      );
+      await AppContext.instance.save();
 
-    setState(() {
-      _isSavingToken = false;
-    });
+      setState(() {
+        _isSavingToken = false;
+      });
 
-    _tryFinalize();
+      _tryFinalize();
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to validate token: $e';
+        _isSavingToken = false;
+      });
+    }
   }
 
   void _tryFinalize() {
