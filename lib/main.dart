@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:gitnar/src/context/app_context.dart';
+import 'package:window_size/window_size.dart';
 import 'package:gitnar/src/routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  setWindowMinSize(const Size(1280, 720));
+  setWindowMaxSize(Size.infinite);
   await dotenv.load();
   await AppContext.instance.load();
 
