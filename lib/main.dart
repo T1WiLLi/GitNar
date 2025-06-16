@@ -6,6 +6,7 @@ import 'package:gitnar/src/routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  setWindowTitle("GitNar");
   setWindowMinSize(const Size(1280, 720));
   setWindowMaxSize(Size.infinite);
   await dotenv.load();
@@ -22,7 +23,6 @@ class App extends StatelessWidget {
     final bool connected = AppContext.instance.isFullyConnected;
 
     return MaterialApp(
-      title: "GitNar",
       theme: ThemeData(
         primarySwatch: Colors.blueGrey,
         visualDensity: VisualDensity.adaptivePlatformDensity,
