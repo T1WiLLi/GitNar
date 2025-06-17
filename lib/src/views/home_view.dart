@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gitnar/src/context/app_context.dart';
 import 'package:gitnar/src/views/components/analytics_view.dart';
 import 'package:gitnar/src/views/components/dashboard_view.dart';
+import 'package:gitnar/src/views/components/home_view/repository_link_modal.dart';
 import 'package:gitnar/src/views/components/issues_view.dart';
 import 'package:gitnar/src/views/components/workflows_view.dart';
 
@@ -194,7 +195,10 @@ class HomeViewState extends State<HomeView> {
                   label: 'Add Repository Link',
                   color: const Color(0xFF10B981),
                   onPressed: () {
-                    // Add repository link functionality
+                    showDialog(
+                      context: context,
+                      builder: (context) => const RepositoryLinkModal(),
+                    );
                   },
                 ),
               ],
