@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gitnar/src/context/app_context.dart';
 import 'package:gitnar/src/views/components/analytics_view.dart';
 import 'package:gitnar/src/views/components/dashboard_view.dart';
+import 'package:gitnar/src/views/components/home_view/information_icon_modal.dart';
 import 'package:gitnar/src/views/components/home_view/repository_link_modal.dart';
 import 'package:gitnar/src/views/components/issues_view.dart';
 import 'package:gitnar/src/views/components/workflows_view.dart';
@@ -296,7 +297,11 @@ class HomeViewState extends State<HomeView> {
           ),
           IconButton(
             icon: const Icon(Icons.help_outline, color: Color(0xFF9CA3AF)),
-            onPressed: () {},
+            onPressed: () {
+              showDialog(context: context, 
+                        builder: (ctx) => InformationIconModal(),
+                        );
+            },
           ),
           const SizedBox(width: 8),
         ],
