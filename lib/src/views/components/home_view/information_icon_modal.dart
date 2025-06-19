@@ -25,21 +25,23 @@ class InformationIconModal extends StatelessWidget {
           children: [
             _buildHeader(),
             const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'This is a modal dialog that provides additional information about the application. '
-                'You can customize this text to include any relevant details or instructions for the user.',
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-                textWidthBasis: TextWidthBasis.longestLine,
-              ),
-            ),
-            const SizedBox(height: 16),
-
+            _buildContent(),
             const SizedBox(height: 16),
             _buildFooter(context),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Text(
+        'GitNar is a tool designed to help you manage your Git and Sonar repositories more effectively. '
+        'It provides a user-friendly interface to view and manage your repositories, track changes, and collaborate with your team.',
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+        textWidthBasis: TextWidthBasis.longestLine,
       ),
     );
   }
@@ -53,7 +55,6 @@ class InformationIconModal extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextButton(
-            
             onPressed: () => Navigator.of(context).pop(),
             style: TextButton.styleFrom(foregroundColor: Colors.white70),
             child: const Text('Cancel'),
