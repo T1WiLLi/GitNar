@@ -130,7 +130,6 @@ class AuthService {
     );
   }
 
-  /// ✅ Returns full GitHub user JSON
   Future<Map<String, dynamic>> _getUser(oauth2.Client client) async {
     final resp = await client.get(Uri.parse('https://api.github.com/user'));
     if (resp.statusCode != 200) {
