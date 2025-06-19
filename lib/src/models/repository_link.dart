@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:crypto/crypto.dart';
 import 'package:gitnar/src/models/github/github_repo.dart';
 import 'package:gitnar/src/models/sonar/sonar_project.dart';

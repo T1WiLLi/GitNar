@@ -49,12 +49,15 @@ class AppContext {
       currentUser = GithubUser.fromJson(jsonDecode(userJson));
     }
 
-    final linksJson = prefs.getString('repositoryLinks');
-    if (linksJson != null) {
-      final links = jsonDecode(linksJson);
-      repositoryLinks = links
-          .map((linkJson) => RepositoryLink.fromJson(linkJson))
+    final linksString = prefs.getString('repositoryLinks');
+    if (linksString != null) {
+      final List<dynamic> decoded = jsonDecode(linksString);
+
+      repositoryLinks = decoded
+          .map((e) => RepositoryLink.fromJson(e as Map<String, dynamic>))
           .toList();
+    } else {
+      repositoryLinks = [];
     }
   }
 

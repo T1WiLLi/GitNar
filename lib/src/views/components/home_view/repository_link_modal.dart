@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:gitnar/src/context/app_context.dart';
 import 'package:gitnar/src/models/github/github_repo.dart';
+import 'package:gitnar/src/models/repository_link.dart';
 import 'package:gitnar/src/models/sonar/sonar_project.dart';
 import 'package:gitnar/src/providers/github_api_provider.dart';
 import 'package:gitnar/src/providers/sonar_api_provider.dart';
+import 'package:gitnar/src/views/components/general/toast_view.dart';
 
 class RepositoryLinkModal extends StatefulWidget {
   const RepositoryLinkModal({super.key});
@@ -118,11 +121,65 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
     }
   }
 
-  void _onConfirm() {
-    // TODO: Implement actual linking logic
-    Navigator.of(
-      context,
-    ).pop({'repository': _selectedRepo, 'sonarProject': _selectedSonarProject});
+  void _onConfirm() async {
+    if (_selectedRepo == null || _selectedSonarProject == null) {
+      Toast.error(
+        context,
+        'Please select both a GitHub repository and a Sonar project before linking.',
+      );
+      return;
+    }
+
+    final repoName = _selectedRepo!.fullName;
+    final projectKey = _selectedSonarProject!.key;
+    final ctx = AppContext.instance;
+
+    if (ctx.isRepositoryLinked(repoName, projectKey)) {
+      Toast.warning(
+        context,
+        '$repoName is already linked to Sonar project $projectKey.',
+      );
+      return;
+    }
+
+    if (ctx.getLinksForRepository(repoName).isNotEmpty) {
+      Toast.error(
+        context,
+        'This repository is already connected to a different Sonar project. '
+        'Please unlink it first.',
+      );
+      return;
+    }
+
+    if (ctx.getLinksForSonarProject(projectKey).isNotEmpty) {
+      Toast.error(
+        context,
+        'This Sonar project is already connected to a different GitHub repository. '
+        'Please unlink it first.',
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final link = RepositoryLink.fromRepoAndProject(
+        repository: _selectedRepo!,
+        sonarProject: _selectedSonarProject!,
+      );
+      await ctx.addRepositoryLink(link);
+
+      if (!mounted) return;
+      Toast.success(
+        context,
+        'Linked ${_selectedRepo!.name} → ${_selectedSonarProject!.displayName}!',
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Toast.error(context, 'Failed to link repository: $e');
+      }
+    }
   }
 
   void _onCancel() {

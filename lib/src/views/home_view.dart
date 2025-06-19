@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gitnar/src/context/app_context.dart';
 import 'package:gitnar/src/views/components/analytics_view.dart';
 import 'package:gitnar/src/views/components/dashboard_view.dart';
+import 'package:gitnar/src/views/components/general/toast_view.dart';
 import 'package:gitnar/src/views/components/home_view/repository_link_modal.dart';
 import 'package:gitnar/src/views/components/issues_view.dart';
 import 'package:gitnar/src/views/components/workflows_view.dart';
@@ -232,26 +233,53 @@ class HomeViewState extends State<HomeView> {
                   icon: Icons.sync,
                   label: 'Sync All Issues',
                   color: const Color(0xFF8B5CF6),
+                  onPressed: () {
+                    Toast.success(
+                      context,
+                      "Syncing issues is not yet implemented.",
+                    );
+                  },
                 ),
                 _buildSidebarButton(
                   icon: Icons.bar_chart,
                   label: 'Generate Report',
                   color: const Color(0xFF3B82F6),
+                  onPressed: () {
+                    Toast.info(
+                      context,
+                      "Report generation is not yet implemented.",
+                    );
+                  },
                 ),
                 _buildSidebarButton(
                   icon: Icons.auto_fix_high,
                   label: 'Auto-Link Issues',
                   color: const Color(0xFF10B981),
+                  onPressed: () {
+                    Toast.warning(
+                      context,
+                      "Auto-linking issues is not yet implemented.",
+                    );
+                  },
                 ),
                 _buildSidebarButton(
                   icon: Icons.close_fullscreen,
                   label: 'Bulk Close Issues',
                   color: const Color(0xFFEF4444),
+                  onPressed: () {
+                    Toast.error(
+                      context,
+                      "Bulk closing issues is not yet implemented.",
+                    );
+                  },
                 ),
                 _buildSidebarButton(
                   icon: Icons.download,
                   label: 'Export Data',
                   color: const Color(0xFFF59E0B),
+                  onPressed: () {
+                    Toast.info(context, "Data export is not yet implemented.");
+                  },
                 ),
               ],
             ),
