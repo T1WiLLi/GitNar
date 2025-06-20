@@ -181,10 +181,13 @@ class RepositoryLinkCard extends StatelessWidget {
               children: [
                 GestureDetector(
                   onTap: onRemove,
-                  child: const Icon(
-                    Icons.close,
-                    color: Color(0xFF6B7280),
-                    size: 18,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: const Icon(
+                      Icons.close,
+                      color: Color(0xFF6B7280),
+                      size: 18,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
