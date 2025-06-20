@@ -182,7 +182,6 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
       return;
     }
 
-    setState(() => _isLoading = true);
     try {
       final link = RepositoryLink.fromRepoAndProject(
         repository: _selectedRepo!,
@@ -198,7 +197,6 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
       Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
         Toast.error(context, 'Failed to link repository: $e');
       }
     }
