@@ -25,12 +25,13 @@ class _InformationIconModalState extends State<InformationIconModal>
       parent: _animationController,
       curve: Curves.easeInOut,
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutBack,
+          ),
+        );
 
     // kick off the intro animation
     _animationController.forward();
@@ -65,7 +66,6 @@ class _InformationIconModalState extends State<InformationIconModal>
             ),
             child: Column(
               children: [
-                
                 _buildHeader(),
                 const SizedBox(height: 32),
                 Expanded(
