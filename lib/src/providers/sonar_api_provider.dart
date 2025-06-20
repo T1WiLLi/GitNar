@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:gitnar/src/context/app_context.dart';
 import 'package:gitnar/src/interfaces/i_sonar_api_provider.dart';
 import 'package:gitnar/src/models/sonar/sonar_comment.dart';
@@ -62,8 +63,6 @@ class SonarApiProvider implements ISonarApiProvider {
   Future<List<String>> getUserOrganizations() async {
     final url = Uri.parse('$_baseUrl/api/organizations/search?member=true');
     final resp = await http.get(url, headers: _headers);
-
-    print('Organizations response: ${resp.body}');
 
     if (resp.statusCode != 200) {
       throw Exception('Failed to fetch user organizations: ${resp.body}');
@@ -129,25 +128,20 @@ class SonarApiProvider implements ISonarApiProvider {
     final orgs = await getUserOrganizations();
     List<SonarProject> allProjects = [];
 
-    print('Found ${orgs.length} organizations: ${orgs.join(", ")}');
-
     for (String org in orgs) {
       try {
-        print('Fetching projects for organization: $org');
         final projects = await getProjects(
           pageSize: pageSize,
           page: page,
           organization: org,
           comprehensive: comprehensive,
         );
-        print('Found ${projects.length} projects in $org');
         allProjects.addAll(projects);
       } catch (e) {
-        print('Error fetching projects for $org: $e');
+        debugPrint('Error fetching projects for organization $org: $e');
       }
     }
 
-    print('Total projects found: ${allProjects.length}');
     return allProjects;
   }
 

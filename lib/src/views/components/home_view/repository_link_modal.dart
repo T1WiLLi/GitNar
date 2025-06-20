@@ -29,7 +29,11 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
   bool _isLoading = false;
 
   late Future<List<GithubRepo>> _githubReposFuture;
-  Future<List<SonarProject>>? _sonarProjectsFuture;
+
+  // Cache the sonar projects to avoid multiple API calls
+  List<SonarProject>? _cachedSonarProjects;
+  bool _isSonarProjectsLoading = false;
+  String? _sonarProjectsError;
 
   final List<String> _stepTitles = [
     'Select GitHub Repository',
@@ -75,13 +79,36 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
       _searchQuery = '';
     });
 
-    _sonarProjectsFuture = sonarProvider.getAllProjects();
+    // Only load sonar projects if not already cached
+    if (_cachedSonarProjects == null && !_isSonarProjectsLoading) {
+      await _loadSonarProjects();
+    }
 
     await _nextStep();
 
     setState(() {
       _isLoading = false;
     });
+  }
+
+  Future<void> _loadSonarProjects() async {
+    setState(() {
+      _isSonarProjectsLoading = true;
+      _sonarProjectsError = null;
+    });
+
+    try {
+      final projects = await sonarProvider.getAllProjects();
+      setState(() {
+        _cachedSonarProjects = projects;
+        _isSonarProjectsLoading = false;
+      });
+    } catch (error) {
+      setState(() {
+        _sonarProjectsError = error.toString();
+        _isSonarProjectsLoading = false;
+      });
+    }
   }
 
   void _onSelectSonarProject(SonarProject project) {
@@ -275,7 +302,7 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
   }
 
   Widget _buildSonarStep() {
-    if (_sonarProjectsFuture == null) {
+    if (_selectedRepo == null) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -301,11 +328,103 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
       );
     }
 
-    return _buildFutureStep<SonarProject>(
-      future: _sonarProjectsFuture!,
-      emptyMessage: 'No Sonar projects found',
-      itemBuilder: (project) => _buildSonarProjectCard(project),
-      onItemTap: _onSelectSonarProject,
+    if (_isSonarProjectsLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading Sonar projects...',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Handle error state
+    if (_sonarProjectsError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const SizedBox(height: 16),
+            const Text(
+              'Error loading Sonar projects',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _sonarProjectsError!,
+              style: const TextStyle(color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadSonarProjects,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Use cached data
+    final projects = _cachedSonarProjects ?? [];
+    final filteredProjects = _getFilteredItems(
+      projects,
+      (project) => project.name,
+    );
+
+    return Column(
+      children: [
+        _buildSearchField(),
+        Expanded(
+          child: filteredProjects.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _searchQuery.isEmpty ? Icons.inbox : Icons.search_off,
+                        color: Colors.white54,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _searchQuery.isEmpty
+                            ? 'No Sonar projects found'
+                            : 'No results found',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  itemCount: filteredProjects.length,
+                  itemBuilder: (context, index) {
+                    return _buildSonarProjectCard(filteredProjects[index]);
+                  },
+                ),
+        ),
+      ],
     );
   }
 
