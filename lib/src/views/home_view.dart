@@ -18,6 +18,7 @@ class HomeView extends StatefulWidget {
 }
 
 class HomeViewState extends State<HomeView> {
+  Key _repositoryListKey = UniqueKey();
   int _selectedIndex = 0;
 
   String? get _githubUsername => AppContext.instance.currentUser?.login;
@@ -196,11 +197,17 @@ class HomeViewState extends State<HomeView> {
                         icon: Icons.add,
                         label: 'Add Repository Link',
                         color: const Color(0xFF10B981),
-                        onPressed: () {
-                          showDialog(
+                        onPressed: () async {
+                          final result = await showDialog<bool>(
                             context: context,
                             builder: (context) => const RepositoryLinkModal(),
                           );
+
+                          if (result == true) {
+                            setState(() {
+                              _repositoryListKey = UniqueKey();
+                            });
+                          }
                         },
                       ),
                     ),
@@ -232,7 +239,7 @@ class HomeViewState extends State<HomeView> {
 
           const Divider(color: Color(0xFF374151), height: 1),
 
-          const RepositoryLinkList(),
+          RepositoryLinkList(key: _repositoryListKey),
 
           const Divider(color: Color(0xFF374151), height: 1),
 

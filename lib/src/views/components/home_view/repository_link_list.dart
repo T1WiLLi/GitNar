@@ -3,7 +3,8 @@ import 'package:gitnar/src/context/app_context.dart';
 import 'package:gitnar/src/models/repository_link.dart';
 
 class RepositoryLinkList extends StatefulWidget {
-  const RepositoryLinkList({super.key});
+  final VoidCallback? onRefresh;
+  const RepositoryLinkList({super.key, this.onRefresh});
 
   @override
   State<RepositoryLinkList> createState() => _RepositoryLinkListState();
@@ -18,10 +19,21 @@ class _RepositoryLinkListState extends State<RepositoryLinkList> {
     _loadRepositoryLinks();
   }
 
+  @override
+  void didUpdateWidget(RepositoryLinkList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadRepositoryLinks();
+  }
+
   void _loadRepositoryLinks() {
     setState(() {
       repositoryLinks = AppContext.instance.repositoryLinks;
     });
+    widget.onRefresh?.call();
+  }
+
+  void refresh() {
+    _loadRepositoryLinks();
   }
 
   Future<void> _removeLink(RepositoryLink link) async {
@@ -127,8 +139,8 @@ class RepositoryLinkCard extends StatelessWidget {
       margin: const EdgeInsets.only(
         left: 8.0,
         right: 8.0,
-        bottom: 8.0,
-        top: 8.0,
+        bottom: 4.0,
+        top: 4.0,
       ),
       decoration: BoxDecoration(
         color: const Color(0xFF1F2937),
@@ -139,7 +151,6 @@ class RepositoryLinkCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
         child: Row(
           children: [
-            // Git icon
             Container(
               width: 32,
               height: 32,
@@ -179,17 +190,7 @@ class RepositoryLinkCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                GestureDetector(
-                  onTap: onRemove,
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: const Icon(
-                      Icons.close,
-                      color: Color(0xFF6B7280),
-                      size: 18,
-                    ),
-                  ),
-                ),
+                _HoverCloseButton(onTap: onRemove),
                 const SizedBox(height: 8),
                 Text(
                   _formatDate(link.createdAt),
@@ -223,5 +224,74 @@ class RepositoryLinkCard extends StatelessWidget {
     } else {
       return 'Just now';
     }
+  }
+}
+
+class _HoverCloseButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _HoverCloseButton({required this.onTap});
+
+  @override
+  State<_HoverCloseButton> createState() => _HoverCloseButtonState();
+}
+
+class _HoverCloseButtonState extends State<_HoverCloseButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<Color?> _colorAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _colorAnimation =
+        ColorTween(
+          begin: const Color(0xFF6B7280),
+          end: const Color(0xFFEF4444),
+        ).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeInOut,
+          ),
+        );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _onHover(bool isHovered) {
+    setState(() {});
+
+    if (isHovered) {
+      _animationController.forward();
+    } else {
+      _animationController.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => _onHover(true),
+        onExit: (_) => _onHover(false),
+        child: AnimatedBuilder(
+          animation: _colorAnimation,
+          builder: (context, child) {
+            return Icon(Icons.close, color: _colorAnimation.value, size: 18);
+          },
+        ),
+      ),
+    );
   }
 }

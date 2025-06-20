@@ -194,7 +194,7 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
         context,
         'Linked ${_selectedRepo!.name} → ${_selectedSonarProject!.displayName}!',
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
         Toast.error(context, 'Failed to link repository: $e');
