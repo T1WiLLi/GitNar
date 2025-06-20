@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gitnar/src/context/app_context.dart';
 import 'package:gitnar/src/views/components/analytics_view.dart';
 import 'package:gitnar/src/views/components/dashboard_view.dart';
+import 'package:gitnar/src/views/components/general/toast_view.dart';
 import 'package:gitnar/src/views/components/home_view/information_icon_modal.dart';
 import 'package:gitnar/src/views/components/home_view/repository_link_modal.dart';
 import 'package:gitnar/src/views/components/issues_view.dart';
@@ -75,30 +76,25 @@ class HomeViewState extends State<HomeView> {
     required Color color,
     VoidCallback? onPressed,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: ElevatedButton.icon(
-          onPressed: onPressed ?? () {},
-          icon: Icon(icon, size: 16, color: Colors.white),
-          label: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
-            ),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: ElevatedButton.icon(
+        onPressed: onPressed ?? () {},
+        icon: Icon(icon, size: 16, color: Colors.white),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
           ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: color,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-            minimumSize: const Size(double.infinity, 36),
-          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          minimumSize: const Size(double.infinity, 36),
         ),
       ),
     );
@@ -191,16 +187,43 @@ class HomeViewState extends State<HomeView> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _buildSidebarButton(
-                  icon: Icons.add,
-                  label: 'Add Repository Link',
-                  color: const Color(0xFF10B981),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const RepositoryLinkModal(),
-                    );
-                  },
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: _buildSidebarButton(
+                        icon: Icons.add,
+                        label: 'Add Repository Link',
+                        color: const Color(0xFF10B981),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const RepositoryLinkModal(),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message: 'Export Repository Links',
+                      child: _buildSmallIconButton(
+                        icon: Icons.file_download,
+                        onPressed: () {
+                          // Handle export functionality
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Tooltip(
+                      message: 'Import Repository Links',
+                      child: _buildSmallIconButton(
+                        icon: Icons.file_upload,
+                        onPressed: () {
+                          // Handle import functionality
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -233,26 +256,57 @@ class HomeViewState extends State<HomeView> {
                   icon: Icons.sync,
                   label: 'Sync All Issues',
                   color: const Color(0xFF8B5CF6),
+                  onPressed: () {
+                    Toast.success(
+                      context,
+                      "Syncing issues is not yet implemented.",
+                    );
+                  },
                 ),
+                const SizedBox(height: 8),
                 _buildSidebarButton(
                   icon: Icons.bar_chart,
                   label: 'Generate Report',
                   color: const Color(0xFF3B82F6),
+                  onPressed: () {
+                    Toast.info(
+                      context,
+                      "Report generation is not yet implemented.",
+                    );
+                  },
                 ),
+                const SizedBox(height: 8),
                 _buildSidebarButton(
                   icon: Icons.auto_fix_high,
                   label: 'Auto-Link Issues',
                   color: const Color(0xFF10B981),
+                  onPressed: () {
+                    Toast.warning(
+                      context,
+                      "Auto-linking issues is not yet implemented.",
+                    );
+                  },
                 ),
+                const SizedBox(height: 8),
                 _buildSidebarButton(
                   icon: Icons.close_fullscreen,
                   label: 'Bulk Close Issues',
                   color: const Color(0xFFEF4444),
+                  onPressed: () {
+                    Toast.error(
+                      context,
+                      "Bulk closing issues is not yet implemented.",
+                    );
+                  },
                 ),
+                const SizedBox(height: 8),
                 _buildSidebarButton(
                   icon: Icons.download,
                   label: 'Export Data',
                   color: const Color(0xFFF59E0B),
+                  onPressed: () {
+                    Toast.info(context, "Data export is not yet implemented.");
+                  },
                 ),
               ],
             ),
@@ -378,6 +432,33 @@ class HomeViewState extends State<HomeView> {
       default:
         return const DashboardView();
     }
+  }
+
+  Widget _buildSmallIconButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(6),
+        hoverColor: const Color(0xFF4B5563).withValues(alpha: .3),
+        splashColor: const Color(0xFF6B7280).withValues(alpha: .3),
+        child: Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: const Color(0xFF374151),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: const Color(0xFF4B5563)),
+          ),
+          child: Center(
+            child: Icon(icon, size: 14, color: const Color(0xFF9CA3AF)),
+          ),
+        ),
+      ),
+    );
   }
 
   @override

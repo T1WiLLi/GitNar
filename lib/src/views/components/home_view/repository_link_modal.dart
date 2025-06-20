@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:gitnar/src/context/app_context.dart';
 import 'package:gitnar/src/models/github/github_repo.dart';
+import 'package:gitnar/src/models/repository_link.dart';
 import 'package:gitnar/src/models/sonar/sonar_project.dart';
 import 'package:gitnar/src/providers/github_api_provider.dart';
 import 'package:gitnar/src/providers/sonar_api_provider.dart';
+import 'package:gitnar/src/views/components/general/toast_view.dart';
 
 class RepositoryLinkModal extends StatefulWidget {
   const RepositoryLinkModal({super.key});
@@ -26,10 +29,13 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
   String _searchQuery = '';
   GithubRepo? _selectedRepo;
   SonarProject? _selectedSonarProject;
-  bool _isLoading = false;
 
   late Future<List<GithubRepo>> _githubReposFuture;
-  Future<List<SonarProject>>? _sonarProjectsFuture;
+
+  // Cache the sonar projects to avoid multiple API calls
+  List<SonarProject>? _cachedSonarProjects;
+  bool _isSonarProjectsLoading = false;
+  String? _sonarProjectsError;
 
   final List<String> _stepTitles = [
     'Select GitHub Repository',
@@ -71,17 +77,36 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
   void _onSelectRepo(GithubRepo repo) async {
     setState(() {
       _selectedRepo = repo;
-      _isLoading = true;
       _searchQuery = '';
     });
 
-    _sonarProjectsFuture = sonarProvider.getAllProjects();
-
+    // Move to next step first
     await _nextStep();
 
+    // Then load sonar projects if not already cached
+    if (_cachedSonarProjects == null && !_isSonarProjectsLoading) {
+      await _loadSonarProjects();
+    }
+  }
+
+  Future<void> _loadSonarProjects() async {
     setState(() {
-      _isLoading = false;
+      _isSonarProjectsLoading = true;
+      _sonarProjectsError = null;
     });
+
+    try {
+      final projects = await sonarProvider.getAllProjects();
+      setState(() {
+        _cachedSonarProjects = projects;
+        _isSonarProjectsLoading = false;
+      });
+    } catch (error) {
+      setState(() {
+        _sonarProjectsError = error.toString();
+        _isSonarProjectsLoading = false;
+      });
+    }
   }
 
   void _onSelectSonarProject(SonarProject project) {
@@ -118,11 +143,65 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
     }
   }
 
-  void _onConfirm() {
-    // TODO: Implement actual linking logic
-    Navigator.of(
-      context,
-    ).pop({'repository': _selectedRepo, 'sonarProject': _selectedSonarProject});
+  void _onConfirm() async {
+    if (_selectedRepo == null || _selectedSonarProject == null) {
+      Toast.error(
+        context,
+        'Please select both a GitHub repository and a Sonar project before linking.',
+      );
+      return;
+    }
+
+    final repoName = _selectedRepo!.fullName;
+    final projectKey = _selectedSonarProject!.key;
+    final ctx = AppContext.instance;
+
+    if (ctx.isRepositoryLinked(repoName, projectKey)) {
+      Toast.warning(
+        context,
+        '$repoName is already linked to Sonar project $projectKey.',
+      );
+      return;
+    }
+
+    if (ctx.getLinksForRepository(repoName).isNotEmpty) {
+      Toast.error(
+        context,
+        'This repository is already connected to a different Sonar project. '
+        'Please unlink it first.',
+      );
+      return;
+    }
+
+    if (ctx.getLinksForSonarProject(projectKey).isNotEmpty) {
+      Toast.error(
+        context,
+        'This Sonar project is already connected to a different GitHub repository. '
+        'Please unlink it first.',
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final link = RepositoryLink.fromRepoAndProject(
+        repository: _selectedRepo!,
+        sonarProject: _selectedSonarProject!,
+      );
+      await ctx.addRepositoryLink(link);
+
+      if (!mounted) return;
+      Toast.success(
+        context,
+        'Linked ${_selectedRepo!.name} → ${_selectedSonarProject!.displayName}!',
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Toast.error(context, 'Failed to link repository: $e');
+      }
+    }
   }
 
   void _onCancel() {
@@ -219,15 +298,6 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
               ],
             ),
           ),
-          if (_isLoading)
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-              ),
-            ),
         ],
       ),
     );
@@ -275,37 +345,104 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
   }
 
   Widget _buildSonarStep() {
-    if (_sonarProjectsFuture == null) {
+    // Handle loading state - show full loading view like GitHub step
+    if (_isSonarProjectsLoading || _cachedSonarProjects == null) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+            ),
             SizedBox(height: 16),
             Text(
-              'No repository selected',
-              style: TextStyle(
-                color: Colors.redAccent,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Please go back and select a repository first.',
+              'Loading Sonar projects...',
               style: TextStyle(color: Colors.white70),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
       );
     }
 
-    return _buildFutureStep<SonarProject>(
-      future: _sonarProjectsFuture!,
-      emptyMessage: 'No Sonar projects found',
-      itemBuilder: (project) => _buildSonarProjectCard(project),
-      onItemTap: _onSelectSonarProject,
+    // Handle error state
+    if (_sonarProjectsError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const SizedBox(height: 16),
+            const Text(
+              'Error loading Sonar projects',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _sonarProjectsError!,
+              style: const TextStyle(color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadSonarProjects,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Use cached data
+    final projects = _cachedSonarProjects ?? [];
+    final filteredProjects = _getFilteredItems(
+      projects,
+      (project) => project.name,
+    );
+
+    return Column(
+      children: [
+        _buildSearchField(),
+        Expanded(
+          child: filteredProjects.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _searchQuery.isEmpty ? Icons.inbox : Icons.search_off,
+                        color: Colors.white54,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _searchQuery.isEmpty
+                            ? 'No Sonar projects found'
+                            : 'No results found',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  itemCount: filteredProjects.length,
+                  itemBuilder: (context, index) {
+                    return _buildSonarProjectCard(filteredProjects[index]);
+                  },
+                ),
+        ),
+      ],
     );
   }
 
