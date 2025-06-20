@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:gitnar/src/models/repository_link.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gitnar/src/models/github/github_user.dart';
 import 'package:gitnar/src/models/user_security.dart';
@@ -12,6 +13,7 @@ class AppContext {
 
   GithubUser? currentUser;
   UserSecurity? security;
+  List<RepositoryLink> repositoryLinks = [];
 
   Future<void> save() async {
     final prefs = await SharedPreferences.getInstance();
@@ -26,6 +28,13 @@ class AppContext {
     } else {
       prefs.remove('currentUser');
     }
+
+    if (repositoryLinks.isNotEmpty) {
+      final linksJson = repositoryLinks.map((link) => link.toJson()).toList();
+      prefs.setString('repositoryLinks', jsonEncode(linksJson));
+    } else {
+      prefs.remove('repositoryLinks');
+    }
   }
 
   Future<void> load() async {
@@ -39,6 +48,17 @@ class AppContext {
     if (userJson != null) {
       currentUser = GithubUser.fromJson(jsonDecode(userJson));
     }
+
+    final linksString = prefs.getString('repositoryLinks');
+    if (linksString != null) {
+      final List<dynamic> decoded = jsonDecode(linksString);
+
+      repositoryLinks = decoded
+          .map((e) => RepositoryLink.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } else {
+      repositoryLinks = [];
+    }
   }
 
   Future<void> clear() async {
@@ -47,6 +67,47 @@ class AppContext {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('security');
     await prefs.remove('currentUser');
+    await prefs.remove('repositoryLinks');
+  }
+
+  Future<void> addRepositoryLink(RepositoryLink link) async {
+    if (!repositoryLinks.any((existingLink) => existingLink.id == link.id)) {
+      repositoryLinks.add(link);
+      await save();
+    }
+  }
+
+  Future<void> removeRepositoryLink(String linkId) async {
+    repositoryLinks.removeWhere((link) => link.id == linkId);
+    await save();
+  }
+
+  RepositoryLink? getRepositoryLink(String linkId) {
+    try {
+      return repositoryLinks.firstWhere((link) => link.id == linkId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  bool isRepositoryLinked(String repositoryFullName, String sonarProjectKey) {
+    return repositoryLinks.any(
+      (link) =>
+          link.repositoryFullName == repositoryFullName &&
+          link.sonarProjectKey == sonarProjectKey,
+    );
+  }
+
+  List<RepositoryLink> getLinksForRepository(String repositoryFullName) {
+    return repositoryLinks
+        .where((link) => link.repositoryFullName == repositoryFullName)
+        .toList();
+  }
+
+  List<RepositoryLink> getLinksForSonarProject(String sonarProjectKey) {
+    return repositoryLinks
+        .where((link) => link.sonarProjectKey == sonarProjectKey)
+        .toList();
   }
 
   bool get isFullyConnected =>
