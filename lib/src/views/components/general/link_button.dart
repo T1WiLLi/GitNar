@@ -25,7 +25,7 @@ class LinkButton extends StatelessWidget {
           color: Colors.blue,
           fontSize: 14,
           decoration: TextDecoration.underline,
-          fontWeight: FontWeight.normal,
+          fontWeight: FontWeight.bold,
           ),
       ),
       
