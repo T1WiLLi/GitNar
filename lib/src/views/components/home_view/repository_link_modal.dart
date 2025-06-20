@@ -26,7 +26,6 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
   String _searchQuery = '';
   GithubRepo? _selectedRepo;
   SonarProject? _selectedSonarProject;
-  bool _isLoading = false;
 
   late Future<List<GithubRepo>> _githubReposFuture;
 
@@ -75,20 +74,16 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
   void _onSelectRepo(GithubRepo repo) async {
     setState(() {
       _selectedRepo = repo;
-      _isLoading = true;
       _searchQuery = '';
     });
 
-    // Only load sonar projects if not already cached
+    // Move to next step first
+    await _nextStep();
+
+    // Then load sonar projects if not already cached
     if (_cachedSonarProjects == null && !_isSonarProjectsLoading) {
       await _loadSonarProjects();
     }
-
-    await _nextStep();
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   Future<void> _loadSonarProjects() async {
@@ -246,15 +241,6 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
               ],
             ),
           ),
-          if (_isLoading)
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-              ),
-            ),
         ],
       ),
     );
@@ -302,33 +288,8 @@ class _RepositoryLinkModalState extends State<RepositoryLinkModal>
   }
 
   Widget _buildSonarStep() {
-    if (_selectedRepo == null) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-            SizedBox(height: 16),
-            Text(
-              'No repository selected',
-              style: TextStyle(
-                color: Colors.redAccent,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Please go back and select a repository first.',
-              style: TextStyle(color: Colors.white70),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_isSonarProjectsLoading) {
+    // Handle loading state - show full loading view like GitHub step
+    if (_isSonarProjectsLoading || _cachedSonarProjects == null) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
