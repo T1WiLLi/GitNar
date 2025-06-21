@@ -5,6 +5,7 @@ import 'package:gitnar/src/views/components/analytics_view.dart';
 import 'package:gitnar/src/views/components/dashboard_view.dart';
 import 'package:gitnar/src/views/components/general/toast_view.dart';
 import 'package:gitnar/src/views/components/home_view/information_icon_modal.dart';
+import 'package:gitnar/src/views/components/home_view/repository_link_list.dart';
 import 'package:gitnar/src/views/components/home_view/repository_link_modal.dart';
 import 'package:gitnar/src/views/components/issues_view.dart';
 import 'package:gitnar/src/views/components/workflows_view.dart';
@@ -17,6 +18,7 @@ class HomeView extends StatefulWidget {
 }
 
 class HomeViewState extends State<HomeView> {
+  Key _repositoryListKey = UniqueKey();
   int _selectedIndex = 0;
 
   String? get _githubUsername => AppContext.instance.currentUser?.login;
@@ -102,7 +104,7 @@ class HomeViewState extends State<HomeView> {
 
   Widget _buildSidebar() {
     return Container(
-      width: 260,
+      width: 300,
       decoration: BoxDecoration(
         color: const Color(0xFF1F2937),
         border: const Border(
@@ -195,11 +197,17 @@ class HomeViewState extends State<HomeView> {
                         icon: Icons.add,
                         label: 'Add Repository Link',
                         color: const Color(0xFF10B981),
-                        onPressed: () {
-                          showDialog(
+                        onPressed: () async {
+                          final result = await showDialog<bool>(
                             context: context,
                             builder: (context) => const RepositoryLinkModal(),
                           );
+
+                          if (result == true) {
+                            setState(() {
+                              _repositoryListKey = UniqueKey();
+                            });
+                          }
                         },
                       ),
                     ),
@@ -228,6 +236,10 @@ class HomeViewState extends State<HomeView> {
               ],
             ),
           ),
+
+          const Divider(color: Color(0xFF374151), height: 1),
+
+          RepositoryLinkList(key: _repositoryListKey),
 
           const Divider(color: Color(0xFF374151), height: 1),
 
@@ -340,22 +352,27 @@ class HomeViewState extends State<HomeView> {
 
   Widget _buildTopBar() {
     return Container(
-      height: 60,
+      height: 80,
       color: const Color(0xFF1F2937),
       child: Row(
         children: [
           Expanded(child: _buildTopTabBar()),
-          IconButton(
-            icon: const Icon(Icons.settings, color: Color(0xFF9CA3AF)),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.help_outline, color: Color(0xFF9CA3AF)),
-            onPressed: () {
-              showDialog(context: context, 
-                        builder: (ctx) => InformationIconModal(),
-                        );
-            },
+          Column(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.help_outline, color: Color(0xFF9CA3AF)),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => InformationIconModal(),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings, color: Color(0xFF9CA3AF)),
+                onPressed: () {},
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
@@ -382,7 +399,7 @@ class HomeViewState extends State<HomeView> {
         child: InkWell(
           onTap: () => _onTabSelected(index),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 30),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
